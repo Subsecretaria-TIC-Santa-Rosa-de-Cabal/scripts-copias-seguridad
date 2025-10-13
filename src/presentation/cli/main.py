@@ -2,6 +2,7 @@ import os
 import sys
 from pathlib import Path
 
+from tqdm import tqdm
 import typer
 
 
@@ -36,11 +37,21 @@ def main(
 
     file_repository = LocalFileRepository()
     repository = JsonReportRepository()
+
+    pbar = tqdm(desc="Generating report", unit="file")
+    def cb(done, total):
+        pbar.total = total
+        pbar.n = done
+        pbar.refresh()
+        if done >= total:
+            pbar.close()
+
     repository.generate(
         root_path = directory,
         hash_type = FileHashType.SHA1,
         workers = workers,
-        file_repository = file_repository
+        file_repository = file_repository,
+        progress_callback = cb
     )
 
 if __name__ == "__main__":

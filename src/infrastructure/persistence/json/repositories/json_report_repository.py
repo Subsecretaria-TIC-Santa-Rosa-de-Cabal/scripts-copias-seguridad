@@ -2,9 +2,8 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime
 import json
 import os
+from typing import Callable, Optional
 from uuid import uuid4
-
-from tqdm import tqdm
 
 from domain.entities.file import FileHashType
 from domain.entities.report import Report
@@ -33,7 +32,8 @@ class JsonReportRepository(ReportRepository):
         root_path: str,
         hash_type: FileHashType,
         workers: int,
-        file_repository: FileRepository
+        file_repository: FileRepository,
+        progress_callback: Optional[Callable[[int,int], None]] = None
     ) -> Report:
         file_paths = []
         for folder, _, files in os.walk(root_path):
@@ -45,12 +45,17 @@ class JsonReportRepository(ReportRepository):
                     file_paths.append(path)
         
         data = {}
+        total = len(file_paths)
+        completed = 0
 
         with ProcessPoolExecutor(max_workers=workers) as executor:
             futures = [executor.submit(file_repository.get_from_path, path, hash_type) for path in file_paths]
-            for future in tqdm(as_completed(futures), total=len(futures), desc="Generating report", unit="file"):
+            for future in as_completed(futures):
                 result = future.result()
                 data[result] = result
+                completed += 1
+                if progress_callback:
+                    progress_callback(completed, total)
 
         response = Report(
             identifier = uuid4(),

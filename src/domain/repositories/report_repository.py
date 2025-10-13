@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Callable, Optional
 
 from domain.entities.file import FileHashType
 from domain.entities.report import Report
@@ -13,7 +14,8 @@ class ReportRepository(ABC):
         root_path: str,
         hash_type: FileHashType,
         workers: int,
-        file_repository: FileRepository
+        file_repository: FileRepository,
+        progress_callback: Optional[Callable[[int,int], None]] = None
     ) -> Report:
         pass
 
